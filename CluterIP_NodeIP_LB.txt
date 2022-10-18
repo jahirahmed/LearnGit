@@ -1,0 +1,177 @@
+Cluster IP and Services
+
+What is service?
+Why we need service?
+
+
+Each pod has its own IP
+
+create a Pod and type describe command to see IP address of the pod
+
+kubectl delete pod <pod name>
+
+create the same Pod again and you see different ip address while recreating
+
+so IP address is not static,it is dynamic to address we need static IP
+
+In this place service role comes into picture
+
+if pod is recreated service will know the IP address
+
+to point replicas of POD IP's we need service
+
+Another advatages is to do load balance to route the traffice
+
+Because of service we need not call the Pod using its IP address
+it will be loosely couples
+
+
+Cluster IP is accessible only inside the cluster
+
+You need to be in node to access cluster IP
+
+
+Imaging you have Node1(10.0.1.x:80) and Node2(10.0.2.x:80)
+
+we need cluster IP for pod to communicate each other
+
+Like pod we have designated cluster IP, to access this we need IP and Port
+
+Cluster IP 10.9.8.x 32767, 
+
+Once we call the Cluster IP service it will route to the respective Node1
+
+
+
+Which Pod to be contacted?
+Which pod to be Forwarded?
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec: 
+  replicas: 2
+  selector:
+    matchLables:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - image: nginx
+        name: nginx-ctr
+		
+label should match with app:nginx
+
+
+
+Create service spec file
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-svc
+spec:
+  selector:
+    app: nginx
+  ports:
+    - name: nginx-port
+      protocol: TCP
+      port: 32767
+      targetPort: 80
+
+selector should match with Pod Match Label in deployment
+
+
+targetPort is port which your application run in your container
+
+port: 32767 is a service port
+
+targetPort: 80 Pod Port
+
+service means cluster IP service 
+
+kubectl get pods -o wide
+
+kubectl get all
+kubectl get endpoints
+
+Run the below command in worker node
+
+
+curl nodeip:80
+
+
+get into any pod  using below command
+kubectl -it exec nginx-deployment-UIyhkk --  /bin/bash
+
+cd /usr/share/nginx/html
+
+change the content of nginx in 
+
+In master node run 
+kubectl get svc
+you will get Cluster IP
+
+run curl using the cluster IP in any of the worker node
+
+Internal load balancer is cluster IP
+ and routing the traffice
+ 
+ Connect to your IP
+ 
+ gcloud compute ssh <NODE_NAME> --zone <ZONE>
+ 
+ 
+ Node Port
+ to expose out node ip with port number
+ 
+ 
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-svc
+spec:
+  selector:
+    app: nginx
+  type: NodePort
+  ports:
+    - name: nginx-port
+      protocol: TCP
+      port: 32700
+      targetPort: 80
+	  nodePort: 30000
+	  
+	  
+ to open port  in GKE
+ 
+ gcloud computer firewall-rules create add-30000 tcp:30000 --source-ranges=0.0.0.0/0 --description="adding from cmd"
+
+ gcloud compute firewall-rules create add-32000 tcp:32000 --source-ranges=0.0.0.0/0 --description="adding from cmd"
+ 
+ 
+ LoadBalancer
+ 
+ Secure and will not export node IP
+ 
+ 
+ kind: Service
+metadata:
+  name: nginx-svc
+spec:
+  selector:
+    app: nginx
+  type: LoadBalancer
+  ports:
+    - name: nginx-port
+      protocol: TCP
+      port: 32700
+      targetPort: 80
+	  nodePort: 30000
+	  
+	  
+kubectl apply -f lbpod
